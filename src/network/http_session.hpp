@@ -1,3 +1,4 @@
+#pragma once
 #ifndef NETWORK_HTTP_SESSION_HPP
 #define NETWORK_HTTP_SESSION_HPP
 

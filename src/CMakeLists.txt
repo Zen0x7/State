@@ -15,22 +15,21 @@ add_executable(Serve
         main.cpp
         app.cpp
         app.hpp
+        state.hpp
+        network/protocol.hpp
         entities/worker.cpp
         entities/worker.hpp
-        network/listener.cpp
         network/listener.hpp
-        network/http_session.cpp
         network/http_session.hpp
-        network/websocket_session.cpp
         network/websocket_session.hpp
         network/handle_request.hpp
         network/fail.hpp
         network/mime_type.hpp
         network/path_cat.hpp
-        state.hpp
         network/stamper.hpp
-        protocol.hpp
         cipher.hpp
+        network/protocol.cpp
+        network/websocket_session.cpp
 )
 
 target_link_libraries(Serve PUBLIC ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES})

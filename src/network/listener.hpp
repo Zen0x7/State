@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef NETWORK_LISTENER_HPP
 #define NETWORK_LISTENER_HPP
 
