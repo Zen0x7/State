@@ -26,6 +26,7 @@ add_executable(Serve
         network/path_cat.hpp
         state.hpp
         network/stamper.hpp
+        protocol.hpp
 )
 
 target_link_libraries(Serve PUBLIC ${Boost_LIBRARIES})
