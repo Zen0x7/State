@@ -1,5 +1,6 @@
 #ifndef PROTOCOL_HPP
 #define PROTOCOL_HPP
+#include "cipher.hpp"
 
 class protocol {
 public:
@@ -10,21 +11,57 @@ public:
         std::string _action{request.at("action").as_string()};
 
         if (_action == "join") {
-            boost::json::object join_response_message = {
+            if (request.contains("registration_token")) {
+                if (request.at("registration_token").is_string()) {
+                    std::string _registration_token_as_hex{request.at("registration_token").as_string()};
+                    std::string _registration_token = cipher::decrypt(_registration_token_as_hex);
+
+                    if (_registration_token == transaction_id) {
+                        boost::json::object join_accepted_message = {
+                            {"type", "response"},
+                            {"status", 202},
+                            {"reference", {{"transaction_id", transaction_id}}},
+                        };
+                        return serialize(join_accepted_message);
+                    }
+
+                    boost::json::object unaccepted_registration_token_message = {
+                        {"type", "response"},
+                        {"status", 401},
+                        {"error", "unaccepted_registration_token_attribute_type"},
+                        {"message", "attribute registration_token isn't accepted"},
+                        {"reference", {{"transaction_id", transaction_id}}},
+                    };
+                    return serialize(unaccepted_registration_token_message);
+                }
+
+                boost::json::object invalid_registration_token_message = {
+                    {"type", "response"},
+                    {"status", 500},
+                    {"error", "invalid_registration_token_attribute_type"},
+                    {"message", "attribute registration_token in message must be a string"},
+                    {"reference", {{"transaction_id", transaction_id}}},
+                };
+                return serialize(invalid_registration_token_message);
+            }
+
+            boost::json::object missing_registration_token_message = {
                 {"type", "response"},
-                {"status", 202},
+                {"status", 500},
+                {"error", "missing_registration_token_attribute"},
+                {"message", "message must include registration_token attribute"},
                 {"reference", {{"transaction_id", transaction_id}}},
             };
-            return boost::json::serialize(join_response_message);
+            return serialize(missing_registration_token_message);
         }
 
         if (_action == "user_accepted") {
-            boost::json::object user_accepted_response_message = {
+            boost::json::object user_accepted_message = {
                 {"type", "response"},
                 {"status", 202},
                 {"reference", {{"transaction_id", transaction_id}}},
             };
-            return boost::json::serialize(user_accepted_response_message);
+            return serialize(user_accepted_message);
         }
 
         boost::json::object generic_response_message = {
@@ -32,7 +69,7 @@ public:
             {"status", 200},
             {"reference", {{"transaction_id", transaction_id}}},
         };
-        return boost::json::serialize(generic_response_message);
+        return serialize(generic_response_message);
     }
 };
 
