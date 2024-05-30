@@ -3,16 +3,6 @@
 
 class protocol {
 public:
-    static constexpr uint32_t hash(const char *data, size_t const size) noexcept {
-        uint32_t hash = 5381;
-
-        for (const char *c = data; c < data + size; ++c)
-            hash = ((hash << 5) + hash) + static_cast<unsigned char>(*c);
-
-        return hash;
-    }
-
-
     static std::string handle(
         boost::json::object &request,
         std::string transaction_id,
