@@ -15,6 +15,8 @@
 #include "fail.hpp"
 #include "stamper.hpp"
 
+#define WS_SERVER_NAME "State"
+
 class state;
 
 namespace network {
@@ -44,9 +46,7 @@ namespace network {
             // Set a decorator to change the Server of the handshake
             ws_.set_option(boost::beast::websocket::stream_base::decorator(
                 [](boost::beast::websocket::response_type &res) {
-                    res.set(boost::beast::http::field::server,
-                            std::string(BOOST_BEAST_VERSION_STRING) +
-                            " advanced-server");
+                    res.set(boost::beast::http::field::server, WS_SERVER_NAME);
                 }));
 
             // Accept the websocket handshake
