@@ -11,6 +11,7 @@
 #include <boost/uuid/uuid_io.hpp>
 
 #include "../state.hpp"
+#include "../protocol.hpp"
 
 #include "fail.hpp"
 #include "stamper.hpp"
@@ -103,17 +104,10 @@ namespace network {
                         if (_message.as_object().contains("transaction_id")) {
                             if (_message.as_object().at("transaction_id").is_string()) {
                                 std::string _transaction_id{_message.as_object().at("transaction_id").as_string()};
-
                                 if (stamper::is_transaction_id_valid(_transaction_id)) {
-                                    std::string _action{_message.as_object().at("action").as_string()};
-
-                                    boost::json::object generic_response_message = {
-                                        {"type", "response"},
-                                        {"status", 200},
-                                        {"reference", {{"action", _action}, {"transaction_id", _transaction_id}}},
-                                    };
+                                    std::string response = protocol::handle(_message.as_object(), _transaction_id, state_);
                                     ws_.async_write(
-                                        boost::asio::buffer(boost::json::serialize(generic_response_message)),
+                                        boost::asio::buffer(response),
                                         boost::beast::bind_front_handler(
                                             &websocket_session::on_write,
                                             shared_from_this()));
@@ -125,7 +119,8 @@ namespace network {
                                         {"message", "value of transaction_id attribute in message must be a uuidv4"}
                                     };
                                     ws_.async_write(
-                                        boost::asio::buffer(boost::json::serialize(invalid_transaction_id_value_message)),
+                                        boost::asio::buffer(
+                                            boost::json::serialize(invalid_transaction_id_value_message)),
                                         boost::beast::bind_front_handler(
                                             &websocket_session::on_write,
                                             shared_from_this()));
@@ -138,7 +133,8 @@ namespace network {
                                     {"message", "attribute transaction_id in message must be a string"}
                                 };
                                 ws_.async_write(
-                                    boost::asio::buffer(boost::json::serialize(invalid_transaction_id_attribute_type_message)),
+                                    boost::asio::buffer(
+                                        boost::json::serialize(invalid_transaction_id_attribute_type_message)),
                                     boost::beast::bind_front_handler(
                                         &websocket_session::on_write,
                                         shared_from_this()));
