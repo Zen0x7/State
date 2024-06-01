@@ -9,8 +9,8 @@
 namespace entities {
     class worker : std::enable_shared_from_this<worker> {
         std::shared_ptr<network::websocket_session> websocket_;
-        std::unordered_map<std::string, std::shared_ptr<user>> users_;
     public:
+        std::unordered_map<std::string, std::shared_ptr<user>> users_;
         explicit worker(std::shared_ptr<network::websocket_session> websocket) : websocket_(std::move(websocket)) {}
         std::string get_address() { return websocket_->remote_endpoint().address().to_string(); }
         uint_least16_t get_port() { return websocket_->remote_endpoint().port(); }
