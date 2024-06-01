@@ -34,6 +34,10 @@ namespace network {
             : ws_(std::move(socket)), state_(state) {
         }
 
+        boost::asio::ip::tcp::endpoint remote_endpoint() {
+            return ws_.next_layer().socket().remote_endpoint();
+        }
+
         // Start the asynchronous accept operation
         template<class Body, class Allocator>
         void
@@ -85,18 +89,7 @@ namespace network {
         void
         on_write(
             boost::beast::error_code ec,
-            std::size_t bytes_transferred) {
-            boost::ignore_unused(bytes_transferred);
-
-            if (ec)
-                return fail(ec, "write");
-
-            // Clear the buffer
-            buffer_.consume(buffer_.size());
-
-            // Do another read
-            do_read();
-        }
+            std::size_t bytes_transferred);
     };
 };
 

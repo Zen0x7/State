@@ -30,6 +30,8 @@ add_executable(Serve
         cipher.hpp
         network/protocol.cpp
         network/websocket_session.cpp
+        entities/user.cpp
+        entities/user.hpp
 )
 
 target_link_libraries(Serve PUBLIC ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES})
