@@ -6,8 +6,9 @@ void network::websocket_session::on_read(boost::beast::error_code ec, std::size_
 
     // This indicates that the websocket_session was closed
     if (ec == boost::beast::websocket::error::closed) {
-        std::string _id { *this->id_.get() };
-        state_->worker_unregister(_id);
+        if (id_ != "NONE") {
+            state_->worker_unregister(id_);
+        }
         return;
     }
 
@@ -125,8 +126,9 @@ void network::websocket_session::on_write(boost::beast::error_code ec, std::size
     boost::ignore_unused(bytes_transferred);
 
     if (ec) {
-        std::string _id { *this->id_.get() };
-        state_->worker_unregister(_id);
+        if (id_ != "NONE") {
+            state_->worker_unregister(id_);
+        }
         return fail(ec, "write");
     }
 

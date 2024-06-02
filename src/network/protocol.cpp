@@ -45,7 +45,7 @@ std::string network::protocol::handle(boost::json::object &request, std::string 
                 std::string _registration_token_as_hex{request.at("registration_token").as_string()};
                 std::string _registration_token = cipher::decrypt(_registration_token_as_hex);
                 if (_registration_token == transaction_id) {
-                    websocket->id_ = std::make_shared<std::string>(transaction_id);
+                    websocket->id_ = transaction_id;
                     state->worker_registered(transaction_id, websocket);
                     return serialize(success_message);
                 }
@@ -61,7 +61,7 @@ std::string network::protocol::handle(boost::json::object &request, std::string 
             if (request.at("address").is_string() && request.at("port").is_int64()) {
                 std::string _ip{request.at("address").as_string()};
                 int64_t _port = request.at("port").as_int64();
-                state->user_connected(*websocket->id_, transaction_id, _ip, _port);
+                state->user_connected(websocket->id_, transaction_id, _ip, _port);
                 return serialize(success_message);
             }
             return serialize(invalid_values_message);
@@ -74,8 +74,8 @@ std::string network::protocol::handle(boost::json::object &request, std::string 
             if (request.at("user_id").is_string()) {
                 std::string _user_id{request.at("user_id").as_string()};
                 if (stamper::is_transaction_id_valid(_user_id)) {
-                    if (state->user_is_connected(*websocket->id_, _user_id)) {
-                        state->user_disconnected(*websocket->id_, _user_id);
+                    if (state->user_is_connected(websocket->id_, _user_id)) {
+                        state->user_disconnected(websocket->id_, _user_id);
                         return serialize(success_message);
                     }
                     boost::json::object user_not_found_message = {

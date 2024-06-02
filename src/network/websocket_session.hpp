@@ -11,6 +11,7 @@
 
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <boost/uuid/random_generator.hpp>
 
 #include "fail.hpp"
 #include "stamper.hpp"
@@ -26,7 +27,7 @@ namespace network {
         std::shared_ptr<state> state_;
 
     public:
-        std::shared_ptr<std::string> id_;
+        std::string id_ = "NONE";
 
         // Take ownership of the socket
         explicit
