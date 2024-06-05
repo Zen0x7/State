@@ -27,8 +27,29 @@ public:
         workers_.insert({transaction_id, std::make_shared<entities::worker>(websocket)});
     }
 
+    void worker_broadcast() {
+
+    }
+
     void worker_unregister(std::string &websocket_id) {
         workers_.erase(websocket_id);
+    }
+
+    void broadcast(std::string &worker_id, boost::json::object & data, std::string &channel) {
+        std::string _transaction_id = boost::uuids::to_string(boost::uuids::random_generator()());
+        boost::json::object _data = {
+            {"action", "distribute"},
+            {"transaction_id", _transaction_id},
+            {"channel", channel},
+            {"data", data}
+        };
+
+        for (const auto &worker : workers_) {
+            worker.second->send(_data);
+            // if (worker.first != worker_id) {
+                // worker.second->send(data);
+            // }
+        }
     }
 
     boost::json::array get_workers() {

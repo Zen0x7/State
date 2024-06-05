@@ -4,6 +4,7 @@
 #define NETWORK_WEBSOCKET_SESSION_HPP
 
 #include <memory>
+#include <iostream>
 
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
@@ -25,9 +26,15 @@ namespace network {
         boost::beast::websocket::stream<boost::beast::tcp_stream> ws_;
         boost::beast::flat_buffer buffer_;
         std::shared_ptr<state> state_;
+        std::vector<boost::shared_ptr<std::string const> > queue_;
 
     public:
         std::string id_ = "NONE";
+
+        // TODO fix error: use of deleted function ‘boost::beast::websocket::stream<boost::beast::basic_stream<boost::asio::ip::tcp, boost::asio::any_io_executor, boost::beast::unlimited_rate_policy> >::stream(const boost::beast::websocket::stream<boost::beast::basic_stream<boost::asio::ip::tcp, boost::asio::any_io_executor, boost::beast::unlimited_rate_policy> >&)’
+        // boost::beast::websocket::stream<boost::beast::tcp_stream> get_socket() {
+        //     return ws_;
+        // }
 
         // Take ownership of the socket
         explicit
@@ -38,6 +45,34 @@ namespace network {
         boost::asio::ip::tcp::endpoint remote_endpoint() {
             return ws_.next_layer().socket().remote_endpoint();
         }
+
+        void send(boost::json::object &data) {
+            auto const _data = boost::make_shared<std::string const>(std::move(serialize(data)));
+
+            boost::asio::post(
+                ws_.get_executor(),
+                boost::beast::bind_front_handler(
+                    &websocket_session::on_send,
+                    shared_from_this(),
+                    _data));
+        }
+
+        void
+        on_send(boost::shared_ptr<std::string const> const &ss) {
+            // Always add to queue
+            queue_.push_back(ss);
+
+            // Are we already writing?
+            if (queue_.size() > 1)
+                return;
+
+            ws_.async_write(
+                boost::asio::buffer(*queue_.front()),
+                boost::beast::bind_front_handler(
+                    &websocket_session::on_write,
+                    shared_from_this()));
+        }
+
 
         // Start the asynchronous accept operation
         template<class Body, class Allocator>

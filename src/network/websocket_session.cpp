@@ -33,13 +33,9 @@ void network::websocket_session::on_read(boost::beast::error_code ec, std::size_
                     if (_message.as_object().at("transaction_id").is_string()) {
                         std::string _transaction_id{_message.as_object().at("transaction_id").as_string()};
                         if (stamper::is_transaction_id_valid(_transaction_id)) {
-                            std::string response = protocol::handle(
+                            auto response = protocol::handle(
                                 _message.as_object(), _transaction_id, state_, shared_from_this());
-                            ws_.async_write(
-                                boost::asio::buffer(response),
-                                boost::beast::bind_front_handler(
-                                    &websocket_session::on_write,
-                                    shared_from_this()));
+                            this->send(response);
                         } else {
                             boost::json::object invalid_transaction_id_value_message = {
                                 {"type", "response"},
@@ -47,12 +43,7 @@ void network::websocket_session::on_read(boost::beast::error_code ec, std::size_
                                 {"error", "invalid_transaction_id_value"},
                                 {"message", "value of transaction_id attribute in message must be a uuidv4"}
                             };
-                            ws_.async_write(
-                                boost::asio::buffer(
-                                    boost::json::serialize(invalid_transaction_id_value_message)),
-                                boost::beast::bind_front_handler(
-                                    &websocket_session::on_write,
-                                    shared_from_this()));
+                            this->send(invalid_transaction_id_value_message);
                         }
                     } else {
                         boost::json::object invalid_transaction_id_attribute_type_message = {
@@ -61,12 +52,7 @@ void network::websocket_session::on_read(boost::beast::error_code ec, std::size_
                             {"error", "invalid_transaction_id_attribute_type"},
                             {"message", "attribute transaction_id in message must be a string"}
                         };
-                        ws_.async_write(
-                            boost::asio::buffer(
-                                boost::json::serialize(invalid_transaction_id_attribute_type_message)),
-                            boost::beast::bind_front_handler(
-                                &websocket_session::on_write,
-                                shared_from_this()));
+                        this->send(invalid_transaction_id_attribute_type_message);
                     }
                 } else {
                     boost::json::object missing_transaction_id_attribute_message = {
@@ -75,11 +61,7 @@ void network::websocket_session::on_read(boost::beast::error_code ec, std::size_
                         {"error", "missing_transaction_id_attribute"},
                         {"message", "message must include transaction_id attribute"}
                     };
-                    ws_.async_write(
-                        boost::asio::buffer(boost::json::serialize(missing_transaction_id_attribute_message)),
-                        boost::beast::bind_front_handler(
-                            &websocket_session::on_write,
-                            shared_from_this()));
+                    this->send(missing_transaction_id_attribute_message);
                 }
             } else {
                 boost::json::object invalid_action_attribute_type_message = {
@@ -88,11 +70,7 @@ void network::websocket_session::on_read(boost::beast::error_code ec, std::size_
                     {"error", "invalid_action_attribute_type"},
                     {"message", "attribute action in message must be a string"}
                 };
-                ws_.async_write(
-                    boost::asio::buffer(boost::json::serialize(invalid_action_attribute_type_message)),
-                    boost::beast::bind_front_handler(
-                        &websocket_session::on_write,
-                        shared_from_this()));
+                this->send(invalid_action_attribute_type_message);
             }
         } else {
             boost::json::object missing_action_attribute_message = {
@@ -101,11 +79,7 @@ void network::websocket_session::on_read(boost::beast::error_code ec, std::size_
                 {"error", "missing_action_attribute"},
                 {"message", "message must include action attribute"}
             };
-            ws_.async_write(
-                boost::asio::buffer(boost::json::serialize(missing_action_attribute_message)),
-                boost::beast::bind_front_handler(
-                    &websocket_session::on_write,
-                    shared_from_this()));
+            this->send(missing_action_attribute_message);
         }
     } else {
         boost::json::object invalid_object_message = {
@@ -114,12 +88,16 @@ void network::websocket_session::on_read(boost::beast::error_code ec, std::size_
             {"error", "invalid_json"},
             {"message", "message must be a valid JSON object"}
         };
-        ws_.async_write(
-            boost::asio::buffer(boost::json::serialize(invalid_object_message)),
-            boost::beast::bind_front_handler(
-                &websocket_session::on_write,
-                shared_from_this()));
+        this->send(invalid_object_message);
     }
+
+    buffer_.consume(buffer_.size());
+
+    ws_.async_read(
+        buffer_,
+        boost::beast::bind_front_handler(
+            &websocket_session::on_read,
+            shared_from_this()));
 }
 
 void network::websocket_session::on_write(boost::beast::error_code ec, std::size_t bytes_transferred) {
@@ -132,9 +110,18 @@ void network::websocket_session::on_write(boost::beast::error_code ec, std::size
         return fail(ec, "write");
     }
 
-    // Clear the buffer
-    buffer_.consume(buffer_.size());
+    // Handle the error, if any
+    if (ec)
+        return fail(ec, "write");
 
-    // Do another read
-    do_read();
+    // Remove the string from the queue
+    queue_.erase(queue_.begin());
+
+    // Send the next message if any
+    if (!queue_.empty())
+        ws_.async_write(
+            boost::asio::buffer(*queue_.front()),
+            boost::beast::bind_front_handler(
+                &websocket_session::on_write,
+                shared_from_this()));
 }

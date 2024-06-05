@@ -18,6 +18,14 @@ namespace entities {
             users_.insert({id, std::make_shared<user>(address, port)});
         }
 
+        std::shared_ptr<network::websocket_session> get_session() {
+            return websocket_;
+        }
+
+        void send(boost::json::object & data) {
+            websocket_->send(data);
+        }
+
         boost::json::array get_users() {
             boost::json::array wrapper;
 

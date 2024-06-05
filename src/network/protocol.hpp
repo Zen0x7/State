@@ -15,7 +15,7 @@ class state;
 namespace network {
     class protocol {
     public:
-        static std::string handle(
+        static boost::json::object handle(
             boost::json::object &request,
             std::string transaction_id,
             std::shared_ptr<state> const &state,
